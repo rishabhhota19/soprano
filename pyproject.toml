@@ -16,13 +16,16 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-  "lmdeploy",
-  "torch",
+  "torch>=2.1.0",
   "unidecode",
   "inflect",
-  "scipy"
+  "scipy",
+  "transformers"
 ]
 license = {file = "LICENSE"}
+
+[project.optional-dependencies]
+lmdeploy = ["lmdeploy"]
 
 [project.urls]
 Homepage = "https://github.com/ekwek1/soprano"
