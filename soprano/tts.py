@@ -143,10 +143,9 @@ class SopranoTTS:
             lengths = list(map(lambda x: x.size(0), hidden_states[idx:idx+self.decoder_batch_size]))
             N = len(lengths)
             for i in range(N):
-                device_tensor = hidden_states[idx+i].device if hasattr(hidden_states[idx+i], 'device') else self.device
                 batch_hidden_states.append(torch.cat([
-                    torch.zeros((1, 512, lengths[0]-lengths[i]), device=device_tensor),
-                    hidden_states[idx+i].unsqueeze(0).transpose(1,2).to(device_tensor).to(torch.float32),
+                    torch.zeros((1, 512, lengths[0]-lengths[i]), device=self.device),
+                    hidden_states[idx+i].unsqueeze(0).transpose(1,2).to(self.device).to(torch.float32),
                 ], dim=2))
             batch_hidden_states = torch.cat(batch_hidden_states)
             with torch.no_grad():
@@ -188,8 +187,7 @@ class SopranoTTS:
                 if finished or len(hidden_states_buffer) >= self.RECEPTIVE_FIELD + chunk_size:
                     if finished or chunk_counter == chunk_size:
                         batch_hidden_states = torch.stack(hidden_states_buffer)
-                        device_tensor = batch_hidden_states.device if hasattr(batch_hidden_states, 'device') else self.device
-                        inp = batch_hidden_states.unsqueeze(0).transpose(1, 2).to(device_tensor).to(torch.float32)
+                        inp = batch_hidden_states.unsqueeze(0).transpose(1, 2).to(self.device).to(torch.float32)
                         with torch.no_grad():
                             audio = self.decoder(inp)[0]
                         if finished:
