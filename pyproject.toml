@@ -23,7 +23,8 @@ dependencies = [
   "scipy",
   "torch",
   "unidecode",
-  "uvicorn"
+  "uvicorn",
+  "inflect"
 ]
 license = {file = "LICENSE"}
 

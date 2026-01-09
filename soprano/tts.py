@@ -1,4 +1,5 @@
 from .vocos.decoder import SopranoDecoder
+from .utils.text import clean_text
 import torch
 import re
 from unidecode import unidecode
@@ -13,8 +14,9 @@ class SopranoTTS:
             backend='auto',
             device='cuda',
             cache_size_mb=10,
-            decoder_batch_size=1):
-        RECOGNIZED_DEVICES = ['cuda']
+            decoder_batch_size=1,
+            model_path=None):
+        RECOGNIZED_DEVICES = ['cuda', 'cpu']
         RECOGNIZED_BACKENDS = ['auto', 'lmdeploy', 'transformers']
         assert device in RECOGNIZED_DEVICES, f"unrecognized device {device}, device must be in {RECOGNIZED_DEVICES}"
         if backend == 'auto':
@@ -31,13 +33,19 @@ class SopranoTTS:
 
         if backend == 'lmdeploy':
             from .backends.lmdeploy import LMDeployModel
-            self.pipeline = LMDeployModel(device=device, cache_size_mb=cache_size_mb)
+            self.pipeline = LMDeployModel(device=device, cache_size_mb=cache_size_mb, model_path=model_path)
         elif backend == 'transformers':
             from .backends.transformers import TransformersModel
-            self.pipeline = TransformersModel(device=device)
+            self.pipeline = TransformersModel(device=device, model_path=model_path)
 
-        self.decoder = SopranoDecoder().cuda()
-        decoder_path = hf_hub_download(repo_id='ekwek/Soprano-80M', filename='decoder.pth')
+        self.device = device
+        self.decoder = SopranoDecoder()
+        if device == 'cuda':
+            self.decoder = self.decoder.cuda()
+        if model_path:
+            decoder_path = os.path.join(model_path, 'decoder.pth')
+        else:
+            decoder_path = hf_hub_download(repo_id='ekwek/Soprano-80M', filename='decoder.pth')
         self.decoder.load_state_dict(torch.load(decoder_path))
         self.decoder_batch_size=decoder_batch_size
         self.RECEPTIVE_FIELD = 4 # Decoder receptive field
@@ -53,20 +61,12 @@ class SopranoTTS:
         res = []
         for text_idx, text in enumerate(texts):
             text = text.strip()
-            sentences = re.split(r"(?<=[.!?])\s+", text)
+            cleaned_text = clean_text(text)
+            sentences = re.split(r"(?<=[.!?])\s+", cleaned_text)
             processed = []
-            for sentence_idx, sentence in enumerate(sentences):
-                old_len = len(sentence)
-                new_sentence = re.sub(r"[^A-Za-z !\$%&'*+,-./0123456789<>?_]", "", sentence)
-                new_sentence = re.sub(r"[<>/_+]", "", new_sentence)
-                new_sentence = re.sub(r"\.\.[^\.]", ".", new_sentence)
-                new_sentence = re.sub(r"\s+", " ", new_sentence)
-                new_len = len(new_sentence)
-                if old_len != new_len:
-                    print(f"Warning: unsupported characters found in sentence: {sentence}\n\tThese characters have been removed.")
-                new_sentence = unidecode(new_sentence.strip())
+            for sentence in sentences:
                 processed.append({
-                    "text": new_sentence,
+                    "text": sentence,
                     "text_idx": text_idx,
                 })
 
@@ -137,8 +137,8 @@ class SopranoTTS:
             N = len(lengths)
             for i in range(N):
                 batch_hidden_states.append(torch.cat([
-                    torch.zeros((1, 512, lengths[0]-lengths[i]), device='cuda'),
-                    hidden_states[idx+i].unsqueeze(0).transpose(1,2).cuda().to(torch.float32),
+                    torch.zeros((1, 512, lengths[0]-lengths[i]), device=self.device),
+                    hidden_states[idx+i].unsqueeze(0).transpose(1,2).to(self.device).to(torch.float32),
                 ], dim=2))
             batch_hidden_states = torch.cat(batch_hidden_states)
             with torch.no_grad():
@@ -180,7 +180,7 @@ class SopranoTTS:
                 if finished or len(hidden_states_buffer) >= self.RECEPTIVE_FIELD + chunk_size:
                     if finished or chunk_counter == chunk_size:
                         batch_hidden_states = torch.stack(hidden_states_buffer)
-                        inp = batch_hidden_states.unsqueeze(0).transpose(1, 2).cuda().to(torch.float32)
+                        inp = batch_hidden_states.unsqueeze(0).transpose(1, 2).to(self.device).to(torch.float32)
                         with torch.no_grad():
                             audio = self.decoder(inp)[0]
                         if finished:
