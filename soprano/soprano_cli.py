@@ -11,9 +11,10 @@ def main():
     parser.add_argument('text', help='Text to synthesize')
     parser.add_argument('--output', '-o', default='output.wav', help='Output audio file path')
     parser.add_argument('--model-path', '-m', help='Path to local model directory (optional)')
-    parser.add_argument('--device', '-d', default='cpu', choices=['cuda', 'cpu'], 
+    parser.add_argument('--device', '-d', default='auto',
+                       choices=['auto', 'cuda', 'cpu'],
                        help='Device to use for inference')
-    parser.add_argument('--backend', '-b', default='auto', 
+    parser.add_argument('--backend', '-b', default='auto',
                        choices=['auto', 'transformers', 'lmdeploy'],
                        help='Backend to use for inference')
     parser.add_argument('--cache-size', '-c', type=int, default=100,

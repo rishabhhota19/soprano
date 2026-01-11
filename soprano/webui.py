@@ -11,16 +11,17 @@ import socket
 import time
 
 # Detect device
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Initialize model
 print("Loading Soprano TTS model...")
 model = SopranoTTS(
     backend="auto",
-    device=DEVICE,
+    device='auto',
     cache_size_mb=100,
     decoder_batch_size=1,
 )
+device = model.device
+backend = model.backend
 print("Model loaded successfully!")
 
 SAMPLE_RATE = 32000
@@ -72,7 +73,7 @@ with gr.Blocks(title="Soprano TTS") as demo:
         f"""
 # 🎵 Soprano TTS
 
-**Running on: {DEVICE.upper()}**
+**Device:** {device.upper()} | **Backend:** {backend}
 
 Soprano is an ultra-lightweight, open-source text-to-speech (TTS) model designed for real-time,
 high-fidelity speech synthesis at unprecedented speed. Soprano can achieve **<15 ms streaming latency**

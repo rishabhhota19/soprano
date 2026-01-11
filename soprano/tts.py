@@ -1,5 +1,6 @@
 from .vocos.decoder import SopranoDecoder
 from .utils.text import clean_text
+from .utils.auto_select import select_device, select_backend
 import torch
 import re
 from unidecode import unidecode
@@ -30,20 +31,8 @@ class SopranoTTS:
             cache_size_mb=100,
             decoder_batch_size=1,
             model_path=None):
-        RECOGNIZED_DEVICES = ['cuda', 'cpu', 'mps']
-        RECOGNIZED_BACKENDS = ['auto', 'lmdeploy', 'transformers']
-        assert device in RECOGNIZED_DEVICES, f"unrecognized device {device}, device must be in {RECOGNIZED_DEVICES}"
-        if backend == 'auto':
-            if device == 'cpu':
-                backend = 'transformers'
-            else:
-                try:
-                    import lmdeploy
-                    backend = 'lmdeploy'
-                except ImportError:
-                    backend = 'transformers'
-        assert backend in RECOGNIZED_BACKENDS, f"unrecognized backend {backend}, backend must be in {RECOGNIZED_BACKENDS}"
-        print(f"Using backend {backend}.")
+        device = select_device(device=device)
+        backend = select_backend(backend=backend, device=device)
 
         if backend == 'lmdeploy':
             from .backends.lmdeploy import LMDeployModel
@@ -53,6 +42,7 @@ class SopranoTTS:
             self.pipeline = TransformersModel(device=device, model_path=model_path)
 
         self.device = device
+        self.backend = backend
         self.decoder = SopranoDecoder().to(device)
         if model_path:
             decoder_path = os.path.join(model_path, 'decoder.pth')
