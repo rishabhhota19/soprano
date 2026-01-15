@@ -35,7 +35,6 @@ _abbreviations = [(re.compile('\\b%s\\.' % x[0], re.IGNORECASE), x[1]) for x in 
     ('ft', 'fort'),
 ]]
 _cased_abbreviations = [(re.compile('\\b%s\\b' % x[0]), x[1]) for x in [
-    ('TTS', 'text to speech'),
     ('Hz', 'hertz'),
     ('kHz', 'kilohertz'),
     ('KBs', 'kilobytes'),
@@ -62,7 +61,15 @@ _cased_abbreviations = [(re.compile('\\b%s\\b' % x[0]), x[1]) for x in [
     ('Thurs', 'thursday'),
     ('Fri', 'friday'),
     ('Sat', 'saturday'),
-    ('Sun', 'sunday'),
+    ('Jan', 'january'),
+    ('Feb', 'february'),
+    ('Mar', 'march'),
+    ('Apr', 'april'),
+    ('Aug', 'august'),
+    ('Sept', 'september'),
+    ('Oct', 'october'),
+    ('Nov', 'november'),
+    ('Dec', 'december'),
     ('and/or', 'and or'),
 ]]
 
@@ -256,6 +263,7 @@ _link_header_re = re.compile(r'(https?://)')
 _dash_re = re.compile(r'(. - .)')
 _dot_re = re.compile(r'([A-Z]\.[A-Z])', re.IGNORECASE)
 _parentheses_re = re.compile(r'[\(\[\{].*[\)\]\}](.|$)')
+_camelcase_re = re.compile(r'\b([A-Z][a-z]*)+\b')
 
 def expand_preunicode_special_characters(text):
     for regex, replacement in _preunicode_special_characters:
@@ -285,11 +293,26 @@ def _expand_parantheses(m):
     match = re.sub(r'[\)\]\}]', '', match)
     return match
 
+def _split_mixedcase(m):
+    match = m.group(0)
+    matches = re.findall('[A-Z][a-z]*', match)
+    if len(matches) == 1:
+        return match # Single capital word
+    if len(matches) == len(match):
+        return match # All uppercase
+    if len(matches) == len(match)-1 and match[-1] == 's':
+        return f"{match[:-1]}'s" # plural uppercase word
+    return ' '.join(matches)
+
 def normalize_special(text):
     text = re.sub(_link_header_re, _expand_link_header, text)
     text = re.sub(_dash_re, _expand_dash, text)
     text = re.sub(_dot_re, _expand_dot, text)
     text = re.sub(_parentheses_re, _expand_parantheses, text)
+    return text
+
+def normalize_mixedcase(text):
+    text = re.sub(_camelcase_re, _split_mixedcase, text)
     return text
 
 ####################################################################################################
@@ -329,6 +352,10 @@ def dedup_punctuation(text):
     text = re.sub(r"\[ELLIPSIS\]", "...", text)
     return text
 
+def collapse_triple_letters(text):
+    text = re.sub(r'(\w)\1{2,}', lambda m: m.group(0)[:2], text)
+    return text
+
 def clean_text(text):
     text = expand_preunicode_special_characters(text)
     text = convert_to_ascii(text)
@@ -336,11 +363,13 @@ def clean_text(text):
     text = normalize_numbers(text)
     text = normalize_special(text)
     text = expand_abbreviations(text)
+    text = normalize_mixedcase(text)
     text = expand_special_characters(text)
     text = lowercase(text)
     text = remove_unknown_characters(text)
     text = collapse_whitespace(text)
     text = dedup_punctuation(text)
+    text = collapse_triple_letters(text)
     return text
 
 
@@ -408,3 +437,9 @@ if __name__ == '__main__':
     print(clean_text('1st 2nd 3rd 4th'))
     print(clean_text('1K 1M 1B 1T 1K1M1B1T'))
     print(clean_text('and/or'))
+
+    print(clean_text('LMDeploy'))
+    print(clean_text('LMDeployDecoderModel'))
+    print(clean_text('Test'))
+    print(clean_text('UPPERCASE'))
+    print(clean_text('TPUs'))

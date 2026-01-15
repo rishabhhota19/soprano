@@ -25,7 +25,7 @@
 - **Infinite generation length** with automatic text splitting
 - Highly expressive, crystal clear audio generation at **32kHz**
 - Widespread support for CUDA, CPU, and MPS devices on Windows, Linux, and Mac
-- Supports WebUI, CLI, and OpenAI-compatible endpoint for easy and production-ready inference
+- Supports OpenAI-compatible endpoint, ONNX, WebUI, CLI, and ComfyUI for easy and production-ready inference
 
 https://github.com/user-attachments/assets/525cf529-e79e-4368-809f-6be620852826
 
@@ -177,12 +177,24 @@ stream = model.infer_stream("Soprano is an extremely lightweight text to speech 
 play_stream(stream) # plays audio with <15 ms latency!
 ```
 
+### 3rd-party tools
+
+#### ONNX
+
+https://github.com/KevinAHM/soprano-web-onnx
+
+#### ComfyUI Nodes
+
+https://github.com/jo-nike/ComfyUI-SopranoTTS
+
+https://github.com/SanDiegoDude/ComfyUI-Soprano-TTS
+
 ## Usage tips:
 
+* When quoting, use double quotes instead of single quotes.
 * Soprano works best when each sentence is between 2 and 30 seconds long.
 * Although Soprano recognizes numbers and some special characters, it occasionally mispronounces them. Best results can be achieved by converting these into their phonetic form. (1+1 -> one plus one, etc)
 * If Soprano produces unsatisfactory results, you can easily regenerate it for a new, potentially better generation. You may also change the sampling settings for more varied results.
-* Avoid improper grammar such as not using contractions, multiple spaces, etc.
 
 ---
 
