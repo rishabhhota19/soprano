@@ -8,6 +8,7 @@ import socket
 import time
 import gradio as gr
 import numpy as np
+import google.generativeai as genai
 from soprano import SopranoTTS
 from soprano.utils.streaming import play_stream
 
@@ -104,6 +105,25 @@ def generate_speech(
         yield None, f"✗ Error: {str(e)}"
 
 
+def generate_story(api_key: str, description: str, duration: str, vibe: str):
+    """Call Gemini to generate story text"""
+    if not api_key.strip():
+        return "Please enter your Gemini API Key above."
+    if not description.strip():
+        return "Please describe your story."
+    
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        prompt = f"""Write a story based on: "{description}"
+Duration: {duration}. Vibe: {vibe}.
+Write for TTS. Simple, evocative. No markdown."""
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
 # Create Gradio interface
 with gr.Blocks(title="Soprano TTS") as demo:
     gr.Markdown(
@@ -122,9 +142,16 @@ with gr.Blocks(title="Soprano TTS") as demo:
     )
     with gr.Row():
         with gr.Column(scale=2):
+            with gr.Accordion("✨ Story Generator (Gemini)", open=True):
+                api_key_input = gr.Textbox(label="Gemini API Key", type="password", placeholder="Enter API Key")
+                with gr.Row():
+                    story_desc = gr.Textbox(label="Describe Your Story", placeholder="A robot exploring Mars...")
+                    story_vibe = gr.Dropdown(label="Vibe", choices=["Whimsical", "Spooky", "Sci-Fi", "Dramatic", "Cozy"], value="Whimsical")
+                story_duration = gr.Textbox(label="Duration", value="Short (30s)")
+                gen_story_btn = gr.Button("📝 Generate Story Text", variant="secondary")
             text_input = gr.Textbox(
                 label="Text to Synthesize",
-                placeholder="Enter text here...",
+                placeholder="Enter text here or generate a story above...",
                 value="Soprano is an extremely lightweight text to speech model designed to produce highly realistic speech at unprecedented speed.",
                 lines=5,
                 max_lines=10,
@@ -191,6 +218,11 @@ with gr.Blocks(title="Soprano TTS") as demo:
         fn=generate_speech,
         inputs=[text_input, temperature, top_p, repetition_penalty, chunk_size, streaming],
         outputs=[audio_output, status_output],
+    )
+    gen_story_btn.click(
+        fn=generate_story,
+        inputs=[api_key_input, story_desc, story_duration, story_vibe],
+        outputs=[text_input],
     )
     gr.Markdown(
         f"""

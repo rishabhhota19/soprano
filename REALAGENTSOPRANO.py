@@ -125,6 +125,7 @@ class FullDuplexAgent:
         print("Loading Soprano...")
         # Use 'auto' to automatically select CUDA/GPU if available
         self.tts = SopranoTTS(device='auto', backend='auto')
+        print(f"Soprano initialized on device: {self.tts.device}")
         self.player = InterruptiblePlayer()
         self.brain = MockBrain()
         self.listener = MicrophoneListener(
