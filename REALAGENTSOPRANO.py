@@ -10,7 +10,7 @@ import sounddevice as sd
 SAMPLE_RATE = 16000  # Input sample rate
 TTS_SAMPLE_RATE = 32000 # Soprano output rate
 VAD_THRESHOLD = 0.01 # RMS threshold for voice detection (adjust if too sensitive)
-SILENCE_DURATION = 1.2 # Seconds of silence to consider "done speaking"
+SILENCE_DURATION = 1.0 # Seconds of silence to consider "done speaking"
 
 # Import Soprano
 try:
